@@ -1,0 +1,246 @@
+### Get root URL
+// SecurityConfiguration won't create JSESSIONID but we're ignoring cookies anyway
+// @no-cookie-jar
+GET http://localhost:8080/
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get /manage with no auth
+// @no-cookie-jar
+GET http://localhost:8080/manage/
+
+> {%
+expected=401;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get /manage with wrong user
+// @no-cookie-jar
+GET http://localhost:8080/manage/
+Authorization: Basic user password
+
+> {%
+expected=403;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get /manage with admin
+// @no-cookie-jar
+GET http://localhost:8080/manage/
+Authorization: Basic admin admin
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get actor list
+// @no-cookie-jar
+GET http://localhost:8080/actors
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get specific actor
+// @no-cookie-jar
+GET http://localhost:8080/actors/1177
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get specific actor
+// @no-cookie-jar
+GET http://localhost:8080/actors/1
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Edit specific actor with admin
+// @no-cookie-jar
+PUT http://localhost:8080/actors/1
+Content-Type: application/json
+Authorization: Basic admin admin
+
+{
+  "id": 1,
+  "name": "Ama Qamata Jr"
+}
+
+> {%
+expected=204;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Create actor with user
+// @no-cookie-jar
+POST http://localhost:8080/actors
+Content-Type: application/json
+Authorization: Basic user password
+
+{
+  "id": 0,
+  "name": "Ama Qamata Jr"
+}
+
+> {%
+url=response.headers.valueOf("Location");
+client.global.set("created_uri", url);
+client.log("url="+url);
+expected=201;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Get crated entity
+// @no-cookie-jar
+GET {{created_uri}}
+
+> {%
+expected=200;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Edit without authentication
+// @no-cookie-jar
+PUT {{created_uri}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Ama Qamata Sr"
+}
+
+> {%
+ expected=401;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+%}
+
+### Edit with wrong credentials
+// @no-cookie-jar
+PUT {{created_uri}}
+Content-Type: application/json
+Authorization: Basic user badpassword
+
+{
+  "id": 1,
+  "name": "Ama Qamata Sr"
+}
+
+> {%
+expected=401;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Blank name
+// @no-cookie-jar
+PUT {{created_uri}}
+Content-Type: application/json
+Authorization: Basic user password
+
+{
+  "id": 1,
+  "name": ""
+}
+
+> {%
+expected=500;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Allow edit
+// @no-cookie-jar
+PUT {{created_uri}}
+Content-Type: application/json
+Authorization: Basic user password
+
+{
+  "id": 1,
+  "name": "Ama Qamata Sr"
+}
+
+> {%
+expected=204;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Anonymous delete
+// @no-cookie-jar
+DELETE {{created_uri}}
+
+> {%
+expected=401;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Delete with user
+// @no-cookie-jar
+DELETE {{created_uri}}
+Authorization: Basic user password
+
+> {%
+expected=403;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Delete with admin
+// @no-cookie-jar
+DELETE {{created_uri}}
+Authorization: Basic admin admin
+
+> {%
+expected=204;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
+
+### Must be 404
+// @no-cookie-jar
+GET {{created_uri}}
+
+> {%
+expected=404;
+client.test("Must be "+expected,function(){
+    client.assert(response.status==expected,"Response status is not "+expected);
+});
+ %}
